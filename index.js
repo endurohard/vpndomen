@@ -2,10 +2,10 @@ require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 
 const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
-const domain = process.env.DOMAIN;
+const domains = process.env.DOMAINS?.split(',') || ['yourdomain.com']; // список доменов через запятую
 
-// Захватывает IP или домен после "@"
-const ipOrDomainRegex = /@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|(?:\d{1,3}\.){3}\d{1,3})/g;
+// регулярка, чтобы найти домен или IP в ссылке (vless, vmess, trojan)
+const urlRegex = /(@)([a-zA-Z0-9\-.]+\.[a-zA-Z]{2,}|(?:\d{1,3}\.){3}\d{1,3})(?=[:\/])/g;
 
 bot.on('message', (msg) => {
     const chatId = msg.chat.id;
@@ -13,10 +13,13 @@ bot.on('message', (msg) => {
 
     if (!text) return;
 
-    if (text.startsWith("vless://") || text.startsWith("vmess://")) {
-        const result = text.replace(ipOrDomainRegex, `@${domain}`);
+    const isLink = text.startsWith('vless://') || text.startsWith('vmess://') || text.startsWith('trojan://');
+
+    if (isLink) {
+        const chosenDomain = domains[Math.floor(Math.random() * domains.length)];
+        const result = text.replace(urlRegex, (_, at, host) => `@${chosenDomain}`);
         bot.sendMessage(chatId, result);
     } else {
-        bot.sendMessage(chatId, `⚠️ Отправь ссылку vless:// или vmess:// для замены IP или домена на ${domain}.`);
+        bot.sendMessage(chatId, `⚠️ Отправь ссылку vless://, vmess:// или trojan:// для замены IP/домена.`);
     }
 });
